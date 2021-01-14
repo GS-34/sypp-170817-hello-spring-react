@@ -1,0 +1,69 @@
+buildscript {
+
+    repositories {
+        mavenCentral()
+        maven { url "https://plugins.gradle.org/m2"}
+    }
+
+    dependencies {
+        // node사용 할 수 있는 플러그인의 의존성을 추가합니다.
+        classpath("com.moowork.gradle:gradle-node-plugin:1.3.1")
+    }
+
+}
+
+plugins {
+    id 'org.springframework.boot' version '2.4.1'
+    id 'io.spring.dependency-management' version '1.0.10.RELEASE'
+    id 'java'
+    id 'com.moowork.node' version '1.3.1'
+}
+
+group = 'com.example'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = '1.8'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+//react 설정
+//gradle 6 버전 이상은 node 다운이 안됨. gradle 버전을 바꿔주자
+//gradlew wrapper --gradle-version 5.6.4
+node {
+    version = '12.6.0' // 설치할 node 버전
+    yarnVersion = '1.22.10' // 설치할 yarn 버전
+    download = true
+    workDir = file("${project.rootDir}/nodejs") // node를 설치할 폴더를 설정
+    yarnWorkDir = file("${project.rootDir}/yarn") // yarn을 설치할 폴더를 설정
+}
+
+def frontDir = "${project.projectDir}/front"
+
+task appNpmInstall(type: NpmTask) {
+    workingDir = file(frontDir)
+    args = ["install"]
+}
+
+task yarnBuild(type: YarnTask) {
+    workingDir = file(frontDir)
+    args = ['build']
+}
+
+task copyWebApp(type: Copy) {
+    from "$frontDir/build"
+    into 'build/resources/main/static/.'
+}
+
+yarnBuild.dependsOn appNpmInstall
+copyWebApp.dependsOn yarnBuild
+compileJava.dependsOn copyWebApp
